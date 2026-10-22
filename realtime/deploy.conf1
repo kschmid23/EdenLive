@@ -1,0 +1,74 @@
+# Deployment settings for the Game2V realtime services.
+#
+# Shell syntax (KEY=value). Every launch script reads this file.
+# Set the hosts, credentials and model paths for your deployment here.
+
+
+# --- Model --------------------------------------------------------------------
+
+# Which model launch.sh and start.sh serve: 14b or 5b.
+MODEL=5b
+
+# Ranks torchrun starts, one per GPU. The default 5B deployment uses one GPU.
+# 14B supports 1-6 or 8 ranks.
+NPROC=1
+
+# The weight tree: dit-14b/, dit-5b/, vae-14b/, vae-5b/, decoder-14b/,
+# decoder-5b/, umt5/, clip/, vision-encoder/, flux-c2f/ (the full layout is in the
+# repository README). A relative path is read from the repository root (one level
+# above realtime/).
+MODEL_ROOT=models/EdenLive
+
+
+# --- The model app ------------------------------------------------------------
+
+# Address the page is served on. 0.0.0.0 accepts connections from other hosts.
+APP_HOST=0.0.0.0
+APP_PORT=8089
+
+# The game whose cover the session shows before one is picked. Slugs come from
+# games/registry.json. Default taxi-dash; run another one with GAME=<slug> bash start.sh.
+GAME="${GAME:-taxi-dash}"
+
+
+# --- TURN relay ---------------------------------------------------------------
+
+# A browser on another subnet usually has no direct UDP path to the server and
+# stalls in "connecting" without a relay. turn_server.sh runs one; set
+# TURN_HOST to the address it prints and TURN_SECRET to a credential of your
+# own.
+#
+# Leave TURN_HOST empty to skip the relay. That only works when the browser and
+# the server share a subnet. Do not point it at a relay that is not running:
+# the browser then stalls for ten seconds before failing.
+TURN_HOST=
+TURN_PORT=3478
+TURN_USERNAME=flashdreams
+TURN_SECRET=
+
+# Network interface turn_server.sh takes its address from.
+TURN_IFACE=eth0
+
+
+# --- Workbench ----------------------------------------------------------------
+
+# The bridge runs game generation on the host with the `claude` CLI, which need
+# not be the GPU host. BRIDGE_HOST must be reachable from the GPU host. Empty
+# means this host (the first address `hostname -I` reports), which is right when
+# the bridge and the model app run on the same machine.
+BRIDGE_HOST=
+BRIDGE_PORT=8091
+
+# The FLUX worker renders the photoreal first frame. The app reaches it over
+# loopback, so it runs on the GPU host.
+FLUX_HOST=127.0.0.1
+FLUX_PORT=8092
+
+# GPU for the FLUX worker. Avoid 0: rank 0 also runs Chromium and the proxy-DINO
+# encode.
+FLUX_GPU=1
+
+# 1 keeps the FLUX pipeline in host memory and moves each stage to the GPU only
+# while it runs, so it can share a GPU with a model rank (needed for 14B on
+# 8 GPUs). 0 keeps it resident (~33 GiB), for a GPU of its own.
+FLUX_OFFLOAD=1

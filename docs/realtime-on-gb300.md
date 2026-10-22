@@ -29,8 +29,8 @@ packages, Node, npm packages, Chromium). It needs `uv`, network access and about
 
 ```bash
 cd /localhome/kschmid/EdenLive/realtime
-. ./.rt_env.sh
-EDEN_GAME=<slug> bash start.sh 5b      # EDEN_GAME defaults to GAME in deploy.conf (ember-den)
+bash start.sh 5b                       # plays GAME from deploy.conf (default taxi-dash)
+GAME=<slug> bash start.sh 5b           # plays another registered game
 ```
 
 - It prints `WebRTC server ready; model loaded. Open http://<host>:8089/` after about 15 seconds (pipeline components 13.9 s, condition encoder
@@ -75,7 +75,7 @@ small overlay with a title chip and a result card, and appends an entry to `real
 | Controls | W/S drive and brake, A/D or arrows steer, Space handbrake, R or Enter restart |
 | Check | The standalone host booted the page and captured an 832x480 first frame: the yellow taxi on the avenue, no HUD |
 
-The running service was started with `ember-den`; playing the taxi game needs it restarted with `EDEN_GAME=taxi-dash`.
+`taxi-dash` is the default game (`GAME` in `realtime/deploy.conf`). A service started earlier keeps the game it was started with; restart it (`bash stop.sh`, then `bash start.sh 5b`) to change it.
 
 ## Repository state on the DGX
 

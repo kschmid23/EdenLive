@@ -18,6 +18,12 @@ cd "$(dirname "$(readlink -f "${BASH_SOURCE[1]}")")" || exit 1
 
 . ./deploy.conf
 
+# Use the real-time Python environment and Node that setup_user_space.sh wrote, when present; without it the
+# services start under the system python, which has no torch.
+if [ -f ./.rt_env.sh ]; then
+  . ./.rt_env.sh
+fi
+
 # A relative MODEL_ROOT is read from the Eden repository root.
 if [ -z "$MODEL_ROOT" ]; then
   die "set MODEL_ROOT in deploy.conf"
