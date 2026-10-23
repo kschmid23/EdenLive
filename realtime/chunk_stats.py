@@ -23,6 +23,7 @@ from pathlib import Path
 LINE = re.compile(
     r'^(?P<time>\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d+) \|.*Cam2V AR (?P<index>\d+) \[(?P<phase>\w+)\] \| (?P<frames>\d+) frames'
     r' \| capture (?P<capture>[\d.]+) ms \(eval (?P<eval>[\d.]+), decode (?P<decode>[\d.]+)\) \| generate (?P<generate>[\d.]+) ms'
+    r'(?:.*GPU mem (?P<alloc>[\d.]+) GiB allocated, (?P<peak>[\d.]+) peak, (?P<reserved>[\d.]+) reserved)?'
 )
 
 
@@ -38,6 +39,8 @@ def parse(path):
                 'frames': int(match['frames']),
                 'generate_ms': float(match['generate']),
                 'capture_ms': float(match['capture']),
+                'peak_gib': float(match['peak']) if match['peak'] else None,
+                'reserved_gib': float(match['reserved']) if match['reserved'] else None,
             })
     return chunks
 
@@ -80,6 +83,10 @@ def report(number, session, fps):
     if gaps:
         print(f'  inter-chunk gap P95    {percentile(gaps, 0.95):7.0f} ms   (median {statistics.median(gaps):.0f} ms, {len(gaps)} gaps; '
               f'includes any wait for player input)')
+    peaks = [chunk['peak_gib'] for chunk in session if chunk['peak_gib'] is not None]
+    if peaks:
+        reserved = [chunk['reserved_gib'] for chunk in session if chunk['reserved_gib'] is not None]
+        print(f'  GPU memory (this process)  peak allocated {max(peaks):.1f} GiB, reserved {max(reserved):.1f} GiB')
     print(f'  RTF                    {seconds / (frames / fps):7.4f}      (generate time / playback time at {fps:g} fps; below 1 keeps up)')
     verdict = 'keeps up with' if frames / seconds >= fps else 'is slower than'
     print(f'  -> generation {verdict} {fps:g} fps playback')

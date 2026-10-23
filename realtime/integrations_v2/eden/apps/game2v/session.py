@@ -744,9 +744,17 @@ class Game2VModelLoop(IModelLoop[Game2VModelState]):
             decode_s = getattr(state.game_capture, "last_decode_s", 0.0)
             # Pipelined, so `capture` is the leftover wait after the overlap, not
             # the render cost; `eval`/`decode` are that render's own timings.
+            memory_text = ""
+            if torch.cuda.is_available():
+                gib = 1024**3
+                memory_text = " | GPU mem {:.1f} GiB allocated, {:.1f} peak, {:.1f} reserved".format(
+                    torch.cuda.memory_allocated() / gib,
+                    torch.cuda.max_memory_allocated() / gib,
+                    torch.cuda.memory_reserved() / gib,
+                )
             logger.info(
                 "Cam2V AR {} [{}] | {} frames | capture {:.1f} ms "
-                "(eval {:.1f}, decode {:.1f}) | generate {:.1f} ms | {:.2f} fps",
+                "(eval {:.1f}, decode {:.1f}) | generate {:.1f} ms | {:.2f} fps{}",
                 ar_index,
                 phase,
                 frame_count,
@@ -755,6 +763,7 @@ class Game2VModelLoop(IModelLoop[Game2VModelState]):
                 decode_s * 1_000.0,
                 generate_wall_s * 1_000.0,
                 metrics["chunk_fps"],
+                memory_text,
             )
         _publish_ui_status(state, metrics)
         _publish_browser_metrics(state, metrics, epoch=browser_metrics_epoch)
