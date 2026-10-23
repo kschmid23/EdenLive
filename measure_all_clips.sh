@@ -3,11 +3,11 @@
 # table at the end. Runs measure_ar_sweep.sh once per clip folder into one shared CSV.
 #
 # Usage:   bash measure_all_clips.sh [--clips "examples/city_racer examples/city_racer_lanes examples/sony_taxi"]
-#                                    [--resolutions "1280x704"] [--frames "117"] [--repeats 3] [--csv FILE] [--dry-run]
+#                                    [--resolutions "1280x704"] [--frames "117"] [--repeats 10] [--csv FILE] [--dry-run]
 #   --clips         space separated sample folders (each has manifest.csv; its first row is the clip rendered)
 #   --resolutions   WIDTHxHEIGHT list, each a multiple of 16                                [1280x704]
 #   --frames        clip lengths, each 12n-3 and within every recording                     [117]
-#   --repeats       measured runs per clip, resolution and length                           [3]
+#   --repeats       measured runs per clip, resolution and length                           [10]
 #   --csv           results file                                                            [measurements/clips_<host>_<time>.csv]
 #   --dry-run       print the plan and the GPU state, run nothing
 # Per clip and resolution there is also one warm-up render that is left out of the table. A recording shorter than the longest
@@ -19,7 +19,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 clips="examples/city_racer examples/city_racer_lanes examples/sony_taxi"
 resolutions="1280x704"
 frames="117"
-repeats=3
+repeats=10
 csv=""
 dry=()
 while [ "$#" -gt 0 ]; do

@@ -2,7 +2,7 @@
 
     python summarize_measurements.py measurements/FILE.csv [more.csv ...]
 
-Failed runs are counted and left out. Rows are grouped by clip, resolution and clip length. For each clip and resolution that has two
+Per group: mean, sample standard deviation (n - 1), median and min-max of the fps of the runs. Failed runs are counted and left out. Rows are grouped by clip, resolution and clip length. For each clip and resolution that has two
 or more lengths, the steady rate is also shown: the extra frames of the longest clip divided by its extra time, which removes the
 model-load tail, the first chunk and the video writing that every run pays once.
 """
@@ -34,15 +34,16 @@ def main():
         key = (row.get("clip") or "?", int(row["width"]), int(row["height"]))
         groups.setdefault(key, {}).setdefault(int(row["frames"]), []).append(row)
 
-    print(f"{'clip':<18} {'resolution':>10} {'frames':>6} {'runs':>4} {'without load s':>15} {'fps (median)':>12} {'fps range':>13} {'GPU added MiB':>14}")
+    print(f"{'clip':<18} {'resolution':>10} {'frames':>6} {'runs':>4} {'without load s':>15} {'fps mean':>9} {'fps std':>8} {'fps median':>11} {'fps min-max':>13} {'GPU added MiB':>14}")
     for (clip, width, height), by_frames in sorted(groups.items()):
         medians = {}
         for frames, runs in sorted(by_frames.items()):
             seconds = [float(r["gen_s"]) for r in runs]
             fps = [frames / s for s in seconds]
             medians[frames] = statistics.median(seconds)
-            print(f"{clip:<18} {width}x{height:<5} {frames:>6} {len(runs):>4} {medians[frames]:>15.1f} {statistics.median(fps):>12.2f} "
-                  f"{min(fps):>6.2f}-{max(fps):<6.2f} {max(int(r['added_mib']) for r in runs):>14}")
+            std = statistics.stdev(fps) if len(fps) > 1 else float("nan")
+            print(f"{clip:<18} {width}x{height:<5} {frames:>6} {len(runs):>4} {medians[frames]:>15.1f} {statistics.mean(fps):>9.2f} {std:>8.2f} "
+                  f"{statistics.median(fps):>11.2f} {min(fps):>6.2f}-{max(fps):<6.2f} {max(int(r['added_mib']) for r in runs):>14}")
         if len(medians) >= 2:
             short, long = min(medians), max(medians)
             extra_s = medians[long] - medians[short]

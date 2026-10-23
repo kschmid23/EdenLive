@@ -6,7 +6,7 @@
 #                                   [--samples DIR] [--dry-run]
 #   --resolutions   space separated WIDTHxHEIGHT list, each a multiple of 16                [832x480 1280x704]
 #   --frames        space separated clip lengths, each 12n-3 and within the recording       [117 237]
-#   --repeats       measured runs per combination                                           [3]
+#   --repeats       measured runs per combination                                           [10]
 #   --csv           results file, appended to                                               [measurements/ar_<host>_<time>.csv]
 #   --samples       sample folder (see render_sample_ar.sh)                                 [examples/city_racer]
 #   --dry-run       print the plan and the free GPU memory, run nothing
@@ -22,7 +22,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 
 resolutions="832x480 1280x704"
 frame_list="117 237"
-repeats=3
+repeats=10
 csv=""
 samples="examples/city_racer"
 dry=0
