@@ -10,6 +10,7 @@
 #   --csv           results file, appended to                                               [measurements/ar_<host>_<time>.csv]
 #   --samples       sample folder (see render_sample_ar.sh)                                 [examples/city_racer]
 #   --dry-run       print the plan and the free GPU memory, run nothing
+#   --no-summary    skip the table at the end (measure_all_clips.sh prints one for all clips)
 # Environment: MIN_FREE_MIB  free GPU memory required per run, in MiB [40000]
 # For each resolution one extra warm-up run is made first and left out of the table: the first run at a new size compiles and
 # caches kernels and is slower. Two clip lengths are used so that the table can also show the steady rate, the extra frames of
@@ -25,6 +26,7 @@ repeats=3
 csv=""
 samples="examples/city_racer"
 dry=0
+summary=1
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --resolutions) resolutions="${2:?--resolutions needs a list}"; shift 2 ;;
@@ -33,7 +35,8 @@ while [ "$#" -gt 0 ]; do
     --csv) csv="${2:?--csv needs a file}"; shift 2 ;;
     --samples) samples="${2:?--samples needs a folder}"; shift 2 ;;
     --dry-run) dry=1; shift ;;
-    -h|--help) sed -n '2,20p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    --no-summary) summary=0; shift ;;
+    -h|--help) sed -n '2,21p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "ERROR: unknown option $1" >&2; exit 2 ;;
   esac
 done
@@ -75,40 +78,8 @@ for resolution in ${resolutions}; do
   done
 done
 
-echo
-echo "== summary (${csv})"
-.venv/bin/python - "${csv}" <<'PY'
-import csv
-import statistics
-import sys
-
-try:
-    all_rows = list(csv.DictReader(open(sys.argv[1])))
-except FileNotFoundError:
-    sys.exit("no results file: no run was started")
-rows = [row for row in all_rows if row["status"] == "0" and row["gen_s"]]
-failed = sum(1 for row in all_rows if row["status"] != "0")
-if not rows:
-    sys.exit(f"no successful runs in {sys.argv[1]} ({failed} failed); see the .measure.log files under inference/")
-groups = {}
-for row in rows:
-    groups.setdefault((int(row["width"]), int(row["height"])), {}).setdefault(int(row["frames"]), []).append(row)
-
-print(f"{'resolution':>10} {'frames':>6} {'runs':>4} {'without load s':>15} {'fps (median)':>12} {'fps range':>13} {'GPU added MiB':>14}")
-for (width, height), by_frames in sorted(groups.items()):
-    medians = {}
-    for frames, runs in sorted(by_frames.items()):
-        seconds = [float(r["gen_s"]) for r in runs]
-        fps = [frames / s for s in seconds]
-        added = max(int(r["added_mib"]) for r in runs)
-        medians[frames] = statistics.median(seconds)
-        print(f"{width}x{height:<5} {frames:>6} {len(runs):>4} {medians[frames]:>15.1f} {statistics.median(fps):>12.2f} "
-              f"{min(fps):>6.2f}-{max(fps):<6.2f} {added:>14}")
-    if len(medians) >= 2:
-        short, long = min(medians), max(medians)
-        extra_s = medians[long] - medians[short]
-        if extra_s > 0:
-            print(f"{width}x{height:<5} steady rate: ({long} - {short}) frames in {extra_s:.1f} extra seconds = {(long - short) / extra_s:.2f} fps")
-if failed:
-    print(f"{failed} run(s) failed and are left out; see the .measure.log files under inference/")
-PY
+if (( summary )); then
+  echo
+  echo "== summary (${csv})"
+  .venv/bin/python summarize_measurements.py "${csv}"
+fi

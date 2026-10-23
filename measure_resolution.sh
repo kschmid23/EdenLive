@@ -110,7 +110,7 @@ fi
 echo "GPU memory       before ${baseline} MiB, peak ${peak} MiB, run added $(( peak - baseline )) MiB, card total ${total_mib} MiB"
 
 if [[ -n "${csv}" ]]; then
-  [[ -s "${csv}" ]] || echo "time,host,gpu,width,height,frames,status,whole_s,gen_s,gen_fps,before_mib,peak_mib,added_mib,total_mib" > "${csv}"
-  echo "$(date '+%Y-%m-%d %H:%M:%S'),$(hostname),${gpu_name},${width},${height},${frames},${status},${whole_s},${gen_s},${gen_fps},${baseline},${peak},$(( peak - baseline )),${total_mib}" >> "${csv}"
+  [[ -s "${csv}" ]] || echo "time,host,gpu,width,height,frames,status,whole_s,gen_s,gen_fps,before_mib,peak_mib,added_mib,total_mib,clip" > "${csv}"
+  echo "$(date '+%Y-%m-%d %H:%M:%S'),$(hostname),${gpu_name},${width},${height},${frames},${status},${whole_s},${gen_s},${gen_fps},${baseline},${peak},$(( peak - baseline )),${total_mib},$(basename "${samples}")" >> "${csv}"
 fi
 exit "${status}"
