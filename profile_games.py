@@ -90,6 +90,15 @@ def wait_ready(timeout_s):
     raise TimeoutError(f"the service was not ready after {timeout_s} s; see {LOG}")
 
 
+def wait_peer_connected(mark, timeout_s):
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        if "-> connected" in LOG.read_bytes()[mark:].decode(errors="replace"):
+            return
+        time.sleep(1)
+    raise TimeoutError(f"no browser connected to the service within {timeout_s} s; see {LOG}")
+
+
 def percentile(values, share):
     return chunk_stats.percentile(values, share)
 
@@ -158,6 +167,7 @@ def main():
     parser.add_argument("--csv", help="results file [measurements/games_<host>_<time>.csv]")
     args = parser.parse_args()
 
+    sys.stdout.reconfigure(line_buffering=True)
     games = args.games.split() if args.games else registry_slugs()
     for slug in games:
         if not (REALTIME / "games" / slug / "demo.json").is_file():
@@ -179,9 +189,10 @@ def main():
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True, args=CHROMIUM_ARGS)
             page = browser.new_page()
+            connect_mark = LOG.stat().st_size
             page.goto(f"http://127.0.0.1:{args.port}/", wait_until="domcontentloaded")
-            page.wait_for_function("window.flashdreamsWebRTCStats && window.flashdreamsWebRTCStats.connected", timeout=90000)
-            print("browser connected")
+            wait_peer_connected(connect_mark, 90)
+            print("browser connected", flush=True)
             for slug in games:
                 print(f"== {slug}", flush=True)
                 results.append(play(args.port, slug, args.seconds, args.restart_every, pids, args.fps))
