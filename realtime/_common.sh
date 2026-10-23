@@ -71,6 +71,8 @@ serve() {
   shift 2
   stop_service "$name"
   mkdir -p .run
+  # Keep the last run's log: a start truncates $log, and a crash is only readable until the next start.
+  [ -s "$log" ] && cp "$log" "$log.prev"
   nohup setsid "$@" > "$log" 2>&1 < /dev/null &
   echo "$!" > "$(pid_file "$name")"
   echo "$name pid $! (log $log)"

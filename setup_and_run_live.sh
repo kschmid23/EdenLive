@@ -36,6 +36,11 @@ NO_START=0
 
 [ -x "$PY" ] || { echo "ABORT: no venv. Run ./setup_and_run_example.sh --no-models first"; exit 1; }
 
+# The launch scripts call a bare `python`; without the venv first on PATH they
+# run /usr/bin/python and die on "No module named torch/eden".
+export VIRTUAL_ENV="$VENV"
+export PATH="$(dirname "$PY"):$PATH"
+
 echo "=== checking free disk ==="
 FREE_GB=$(df -BG --output=avail "$ROOT" 2>/dev/null | tail -1 | tr -dc '0-9' || echo 0)
 if [ "${FREE_GB:-0}" -gt 0 ]; then
@@ -90,6 +95,13 @@ if [ -n "$IFACE" ] && ! grep -qE "^TURN_IFACE=$IFACE$" deploy.conf; then
     sed -i "s/^TURN_IFACE=.*/TURN_IFACE=$IFACE/" deploy.conf
     echo "    TURN_IFACE set to $IFACE"
 fi
+# TURN_SECRET is your own password for the relay; the services refuse to start
+# when TURN_HOST is set and it is empty. Generated once, never printed.
+if ! grep -qE '^TURN_SECRET=.+' deploy.conf; then
+    sed -i "s/^TURN_SECRET=.*/TURN_SECRET=$(openssl rand -hex 16)/" deploy.conf
+    grep -qE '^TURN_SECRET=.+' deploy.conf || { echo "ABORT: no TURN_SECRET= line in deploy.conf to fill"; exit 1; }
+    echo "    TURN_SECRET generated"
+fi
 grep -E '^(MODEL|NPROC|MODEL_ROOT|APP_HOST|APP_PORT|GAME|TURN_HOST|TURN_IFACE)=' deploy.conf | sed 's/^/    /'
 
 if [ "$NO_START" -eq 1 ]; then
@@ -98,12 +110,27 @@ if [ "$NO_START" -eq 1 ]; then
     exit 0
 fi
 
+command -v turnserver >/dev/null || { echo "ABORT: coturn missing. Run: sudo apt-get install -y coturn"; exit 1; }
+
 echo
 echo "=== 5/5 starting services ==="
 bash turn_server.sh
 bash workbench_bridge.sh
 bash workbench_flux.sh
 bash launch.sh
+
+# The start scripts print a pid even when the process dies right after, so
+# confirm each one is still running before announcing the UI.
+sleep 20
+for svc in turn bridge flux app; do
+    PID_FILE=".run/$svc.pid"
+    if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+        echo "    $svc: running"
+    else
+        echo "ABORT: $svc is not running; see its log (.turnserver.log, .workbench/bridge.log, .workbench_flux.log, .eden_app.log)"
+        exit 1
+    fi
+done
 
 PORT="$(grep -E '^APP_PORT=' deploy.conf | cut -d= -f2)"
 HOST="$(grep -E '^TURN_HOST=' deploy.conf | cut -d= -f2)"
