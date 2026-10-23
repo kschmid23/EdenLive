@@ -38,10 +38,23 @@ fi
 (cd realtime && "${uv}" pip install --python "../${py}" -r requirements.txt)
 "${py}" -c "import torch, flashdreams; print('torch', torch.__version__, '| cuda available:', torch.cuda.is_available(), '| flashdreams ok')"
 
+# FlashDreams loads the unversioned libcudart.so; the CUDA runtime wheel ships only libcudart.so.13, so link it and put its folder on
+# LD_LIBRARY_PATH (written into .rt_env.sh below).
+cudart="$(find "${root}/.venv-rt" -name 'libcudart.so.13' | head -n 1)"
+[[ -n "${cudart}" ]] || { echo "ERROR: libcudart.so.13 not found under .venv-rt" >&2; exit 1; }
+cudart_dir="$(dirname "${cudart}")"
+[[ -e "${cudart_dir}/libcudart.so" ]] || ln -s libcudart.so.13 "${cudart_dir}/libcudart.so"
+echo "libcudart.so -> ${cudart_dir}"
+
 echo "== 4/6 Node.js ${node_version} -> ${node_dir}"
 if [[ ! -x "${node_dir}/bin/node" ]]; then
   mkdir -p "${node_dir}"
-  curl -fsSL "https://nodejs.org/dist/v${node_version}/node-v${node_version}-linux-arm64.tar.xz" | tar -xJ -C "${node_dir}" --strip-components=1
+  case "$(uname -m)" in
+    aarch64|arm64) node_arch=arm64 ;;
+    x86_64) node_arch=x64 ;;
+    *) echo "ERROR: no Node.js build for $(uname -m)" >&2; exit 1 ;;
+  esac
+  curl -fsSL "https://nodejs.org/dist/v${node_version}/node-v${node_version}-linux-${node_arch}.tar.xz" | tar -xJ -C "${node_dir}" --strip-components=1
 fi
 "${node_dir}/bin/node" --version
 
@@ -52,7 +65,8 @@ echo "== 6/6 headless Chromium for Playwright"
 "${py}" -m playwright install chromium
 
 cat > realtime/.rt_env.sh <<EOF
-# Source this before start.sh: use the real-time environment and Node.
+# Source this before start.sh: use the real-time environment, Node and the CUDA runtime library.
 export PATH="${root}/.venv-rt/bin:${node_dir}/bin:\${PATH}"
+export LD_LIBRARY_PATH="${cudart_dir}\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}"
 EOF
 echo "done. Next: . realtime/.rt_env.sh && cd realtime && bash start.sh 5b"
