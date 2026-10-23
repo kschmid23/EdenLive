@@ -39,7 +39,7 @@ GAME=<slug> bash start.sh 5b           # plays another registered game
 - `TURN_HOST` is empty, so the page connects to the model directly with no relay. The page and the WebRTC handshake were loaded from a PC on the
   network (HTTP 200); whether video streams through without a relay has not been confirmed.
 - Stop with `bash stop.sh` in `realtime/`.
-- Speed of the service on this GPU has not been measured. The paper reports 29.8 fps at 1280x704 on one H100.
+- Speed on this GPU: about 24.5 fps generation at 1280x704 over the five registered games, 2026-10-22 (the paper reports 31.04 fps on one H100). See `docs/measuring-speed.md`.
 
 ## Adding a standalone game
 
@@ -86,5 +86,5 @@ earlier changes to `dynamic_prompt.py`, `adapter.py` and `render_sample.sh`. Com
 
 - Restarting the service with the taxi game and playing it from a browser.
 - A TURN relay, if the direct connection is blocked.
-- Measuring the real-time frame rate and latency on this GPU.
+- Input-to-display latency on this GPU (frame rate and chunk latency are in `docs/measuring-speed.md`).
 - The workbench (game library, FLUX first frames, the Claude CLI bridge).
