@@ -2,7 +2,7 @@
 # Profile the real-time service on all registered games, one after another, and print one table. Wrapper around profile_games.py with
 # the real-time Python environment.
 #
-# Usage:   bash profile_all_games.sh [--games "ember-den taxi-dash"] [--seconds 75] [--restart-every 25] [--csv FILE]
+# Usage:   bash profile_all_games.sh [--games "ember-den taxi-dash"] [--seconds 150] [--restart-every 25] [--csv FILE]
 # Everything is passed on to profile_games.py (see its header). Needs realtime/setup_user_space.sh to have been run, and an idle GPU:
 # it refuses to start while another real-time service is running, and stops only the service it starts.
 set -euo pipefail

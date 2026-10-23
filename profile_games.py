@@ -5,7 +5,7 @@ Chromium so the service has a client, then for each game switches to it, lets it
 --restart-every seconds so a finished round does not leave the game idle) and reads the chunk lines the service logs. The chunks the
 service marks as warmup are left out. At the end it stops the service it started.
 
-    .venv-rt/bin/python profile_games.py                          all games in realtime/games/registry.json, 75 s each
+    .venv-rt/bin/python profile_games.py                          all games in realtime/games/registry.json, 150 s each (6 rounds of 25 s)
     .venv-rt/bin/python profile_games.py --games "ember-den taxi-dash" --seconds 30
 
 Needs the real-time environment (realtime/setup_user_space.sh), an idle GPU (it refuses to start while another service is running)
@@ -160,7 +160,7 @@ def print_table(results):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--games", help="space separated slugs [all registered games]")
-    parser.add_argument("--seconds", type=int, default=75, help="play time per game [75]")
+    parser.add_argument("--seconds", type=int, default=150, help="play time per game, 6 rounds at the default round length [150]")
     parser.add_argument("--restart-every", type=int, default=25, help="restart the round this often, in seconds [25]")
     parser.add_argument("--port", type=int, default=8089)
     parser.add_argument("--fps", type=float, default=24.0, help="playback rate for the real-time factor [24]")
